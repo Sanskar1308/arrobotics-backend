@@ -19,6 +19,22 @@ const registrationSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
+const middleware = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.status(401).send();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded Token: ", decoded);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error("Token verification failed: ", err);
+    return res.sendStatus(403);
+  }
+};
+
 app.post("/registration", async (req, res) => {
   const validation = registrationSchema.safeParse(req.body);
   if (!validation.success) {
