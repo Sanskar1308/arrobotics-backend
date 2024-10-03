@@ -187,6 +187,22 @@ app.get("/admin/all-users", authenticateToken, async (req, res) => {
   }
 });
 
+app.post("/admin/delete-user", authenticateToken, async (req, res) => {
+  const { userId } = req.body;
+
+  const user = await User.findOne({ _id: userId });
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+  const deletedUser = await User.findOneAndDelete({ _id: user._id });
+  res.json({
+    message: "User deleted successfully",
+    deletedUser,
+  });
+});
+
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });
