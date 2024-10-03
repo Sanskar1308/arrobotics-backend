@@ -6,6 +6,7 @@ const connectDB = require("./db");
 const bcrypt = require("bcrypt");
 const Admin = require("./models/admin.models");
 const User = require("./models/user.model");
+const jwt = require("jsonwebtoken");
 
 connectDB();
 
@@ -41,23 +42,35 @@ app.post("/admin/registration", async (req, res) => {
 app.post("/admin/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const admin = await Admin.findOne({ email });
-  if (!admin) {
-    return res.status(404).json({
-      message: "user not found",
+  try {
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return res.status(404).json({
+        message: "user not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const jwtToken = jwt.sign({ adminId: admin._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    res.json({
+      message: "Admin logged in successfully",
+      token: jwtToken,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
     });
   }
-
-  const isMatch = await bcrypt.compare(password, admin.password);
-  if (!isMatch) {
-    return res.status(401).json({
-      message: "Invalid credentials",
-    });
-  }
-
-  res.json({
-    message: "Admin logged in successfully",
-  });
 });
 
 app.listen(process.env.PORT, () => {
