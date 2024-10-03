@@ -11,7 +11,7 @@ connectDB();
 
 app.use(express.json());
 
-app.get("/admin/registration", async (req, res) => {
+app.post("/admin/registration", async (req, res) => {
   const { username, password, email } = req.body;
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,6 +35,28 @@ app.get("/admin/registration", async (req, res) => {
   res.json({
     msg: "Admin created successfully",
     admin,
+  });
+});
+
+app.post("/admin/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    return res.status(404).json({
+      message: "user not found",
+    });
+  }
+
+  const isMatch = await bcrypt.compare(password, admin.password);
+  if (!isMatch) {
+    return res.status(401).json({
+      message: "Invalid credentials",
+    });
+  }
+
+  res.json({
+    message: "Admin logged in successfully",
   });
 });
 
