@@ -7,13 +7,27 @@ const bcrypt = require("bcrypt");
 const Admin = require("./models/admin.models");
 const User = require("./models/user.model");
 const jwt = require("jsonwebtoken");
+const { z } = require("zod");
 
 connectDB();
 
 app.use(express.json());
 
+const registrationSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters long"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+});
+
 app.post("/admin/registration", async (req, res) => {
-  const { username, password, email } = req.body;
+  const validation = registrationSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      message: validation.error.errors[0].message,
+    });
+  }
+
+  const { username, password, email } = validation.body;
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
