@@ -19,6 +19,41 @@ const registrationSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
+app.post("/registration", async (req, res) => {
+  const validation = registrationSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      message: validation.error.errors[0].message,
+    });
+  }
+
+  console.log(validation);
+
+  const { username, password, email } = validation.data;
+
+  const exisitingUser = await User.findOne({ email });
+  if (exisitingUser) {
+    return res.status(409).json({
+      message: "User already exists",
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  let user = new User({
+    username,
+    password: hashedPassword,
+    email,
+  });
+
+  user = await user.save();
+
+  res.json({
+    msg: "User created successfully",
+    user,
+  });
+});
+
 app.post("/admin/registration", async (req, res) => {
   const validation = registrationSchema.safeParse(req.body);
   if (!validation.success) {
@@ -27,7 +62,7 @@ app.post("/admin/registration", async (req, res) => {
     });
   }
 
-  const { username, password, email } = validation.body;
+  const { username, password, email } = validation.data;
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
