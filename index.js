@@ -19,14 +19,13 @@ const registrationSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
-const middleware = (req, res, next) => {
+const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).send();
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded Token: ", decoded);
     req.user = decoded;
     next();
   } catch (err) {
@@ -35,6 +34,7 @@ const middleware = (req, res, next) => {
   }
 };
 
+//user routes
 app.post("/registration", async (req, res) => {
   const validation = registrationSchema.safeParse(req.body);
   if (!validation.success) {
@@ -104,6 +104,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//admin routes
 app.post("/admin/registration", async (req, res) => {
   const validation = registrationSchema.safeParse(req.body);
   if (!validation.success) {
@@ -163,6 +164,20 @@ app.post("/admin/login", async (req, res) => {
     res.json({
       message: "Admin logged in successfully",
       token: jwtToken,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/admin/all-users", authenticateToken, async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json({
+      users,
     });
   } catch (error) {
     res.status(500).json({
